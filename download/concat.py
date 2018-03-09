@@ -6,8 +6,8 @@ import sys
 import concat
 import subprocess
 
-# ダウンロード先ディレクトリ
-BASEDIR = '/home/tomoro/ダウンロード'
+# ダウンロード先ディレクトリ設定
+#BASEDIR = '/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2017-'設定
 
 def concat(basedir, filename):
     files = os.listdir(basedir)
@@ -32,11 +32,11 @@ def concat(basedir, filename):
 
 
 if __name__ in '__main__':
+    print('編集対象のディレクトリを入力してください')
+    home_dir = input('>> ')
 
-    # ファイルタイプと配布回の指定
-    argvs = sys.argv
-    if len(argvs) != 2:
-        print('command option error')
-        quit()
-
-    concat(BASEDIR, argvs[1])
+    print('ファイル名の指定: 例 JPG_2017036 複数の場合,区切りで入力')
+    file_names = input('>> ')
+    file_names = file_names.split(',')
+    for file_name in file_names:
+        concat(home_dir, file_name)

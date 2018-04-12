@@ -9,6 +9,9 @@ import shutil
 import os
 import pymysql
 import sys
+import traceback
+import subprocess
+import getpass
 
 def remove_tags(element):
 
@@ -28,6 +31,7 @@ def xml_elements(xml_path):
 
     tree = ET.fromstring(xml_string) # DOM root
     t = tree.find('.//description').itertext()
+
     ret = {}
     kind = tree.get('kind-of-jp')
     ret['kind-of-jp'] = kind
@@ -137,6 +141,26 @@ def register_xml_elements(sql_element):
     stmt.execute(sql_element[0], sql_element[1])
     stmt.close()
 
+def error_log(xml_path, message):
+    """ xml解析エラーのDBへの記録 """
+    #接続情報
+    dbh = pymysql.connect(
+             host='localhost',
+             user='tomoro',
+             password='tomo',
+             db='test',
+             charset='utf8',
+             cursorclass=pymysql.cursors.DictCursor
+        )
+
+    stmt = dbh.cursor()
+
+    sql = "insert into publn_error (xml_path, message) values (%s, %s)"
+
+    stmt.execute(sql, [xml_path, message])
+    stmt.close()
+
+
 
 if __name__ in '__main__':
     # xml用ルートディレクトリ
@@ -152,34 +176,75 @@ if __name__ in '__main__':
     in_filetype = input('>> ')
 
     # 全文ファイル格納Dir -> 都度書き換える
-    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2017-"
-    p = Path(root_dir)
-    file_list = list(p.glob("**/*.ZIP"))
-    str_f_list = sorted([str(l) for l in file_list], reverse=True)
+    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-"
+    files = os.listdir(root_dir)
+    file_list = []
+    for f in files:
+        if os.path.isdir(root_dir + '/' + re.sub('\.ZIP|\.ISO|\.tar\.gz|.zip','', f)):
+            continue
+        else:
+            file_list.append(root_dir + '/' + f)
+        #if re.search('.ZIP', f):
+        #    print(f)
+    #sys.exit()
+    #p = Path(root_dir)
+    #file_list = list(p.glob("**/*.ZIP"))
+    str_f_list = sorted(file_list, reverse=True)
     for f_name in str_f_list:
         print(f_name)
-        d_path = f_name.replace('.ZIP','') + '/'
-
-        if os.path.exists(d_path):
-            continue
-
-        arch_file = tarfile.open(f_name)
-        arch_file.extractall(d_path)
-        arch_file.close()
+        d_path = re.sub(r'\.ZIP|\.ISO|\.tar\.gz|.zip', '', f_name) + '/'
+        print(d_path)
+        if re.search('\.ZIP|\.tar\.gz|\.zip', f_name):
+            try:
+                arch_file = tarfile.open(f_name)
+                arch_file.extractall(d_path)
+                arch_file.close()
+            except tarfile.ReadError:
+                with zipfile.ZipFile(f_name) as existing_zip:
+                    existing_zip.extractall(d_path)
+        elif re.search('.ISO', f_name):
+            os.makedirs(d_path, exist_ok=True)
+            subprocess.call(('sudo mount ' + f_name + ' ' + d_path), shell=True)
 
         tar_path = Path(d_path + 'DOCUMENT/' + in_filetype)
         path_list = list(tar_path.glob("**/*.xml"))
-        for pl in path_list:
-            xml_path = str(pl)
-            ret = xml_elements(xml_path)
-            pub_nr = ret['publn_nr']
-            print(pub_nr)
-            print(xml_path)
-            dirs = ret['kind-of-jp'] + '/' + pub_nr[0:4] + '/' + pub_nr[4:7] + '000'
 
-            #DB登録
-            sql_element = generate_insert_sql(ret)
-            register_xml_elements(sql_element)
+        for pl in path_list:
+
+            try:
+                xml_path = str(pl)
+                ret = xml_elements(xml_path)
+                pub_nr = ret['publn_nr']
+                print(pub_nr)
+                print(xml_path)
+                dirs = ret['kind-of-jp'] + '/' + pub_nr[0:4] + '/' + pub_nr[4:7] + '000'
+
+                #DB登録
+                sql_element = generate_insert_sql(ret)
+                register_xml_elements(sql_element)
+            except pymysql.IntegrityError:
+                # キー重複エラー　ー＞　DBログ記録後継続
+                except_str = traceback.format_exc()
+                error_log(xml_path, except_str)
+            except (pymysql.OperationalError, pymysql.ProgrammingError, pymysql.InternalError) as error:
+                # データベースエラー　エラーログファイル生成、終了　処理は継続
+                except_str = traceback.format_exc()
+                print(except_str)
+                message = "--------------------------------------------------\n"
+                message += "XML_PATH:" + xml_path + "\n"
+                message += "ERROR_MSG:" + except_str + "\n"
+                message += "--------------------------------------------------\n"
+                f = open('publn_error_log.txt', 'a')
+                f.write(message)
+                f.close()
+            except:
+                except_str = traceback.format_exc()
+                print(except_str)
+                message = "--------------------------------------------------\n"
+                message += "XML_PATH:" + xml_path + "\n"
+                message += "ERROR_MSG:" + except_str + "\n"
+                message += "--------------------------------------------------\n"
+                error_log(xml_path, except_str)
 
             # copy xml file
             os.makedirs(xml_dirs + dirs, exist_ok=True)
@@ -204,7 +269,11 @@ if __name__ in '__main__':
             target_pos = pos_dirs + dirs + '/' + pub_nr + '.pos'
             if not os.path.isfile(target_pos):
                 shutil.copy(xml_path.replace('xml', 'pos'), target_pos)
-        
+
+        #unmount ISOファイル
+        if re.search('.ISO', f_name):
+            subprocess.call(('sudo umount ' + d_path), shell=True)
+
     """
     p = Path(path)
     path_list = list(p.glob("**/*.xml"))

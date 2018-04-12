@@ -1,0 +1,9 @@
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2016060
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2010047
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2010023
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006016
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006015
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006014
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006013
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006012
+XML_PATH:/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-/JPG_2006011

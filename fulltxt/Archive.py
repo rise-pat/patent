@@ -172,28 +172,39 @@ if __name__ in '__main__':
     # pos用ルートディレクトリ
     pos_dirs = '/mnt/Drobo/POS_files/'
 
-    print('公報種類を入力してください(A,A5,S,S5,T,T5)')
+    print('公報種類を入力してください(A,A5,S,S5,T,T5):複数可')
     in_filetype = input('>> ')
 
+    print('新規登録 (zipファイル未解凍？) : y/n')
+    is_new = input('>> ')
+
     # 全文ファイル格納Dir -> 都度書き換える
-    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2006-"
+    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2014001-2016070"
     files = os.listdir(root_dir)
     file_list = []
     for f in files:
-        if os.path.isdir(root_dir + '/' + re.sub('\.ZIP|\.ISO|\.tar\.gz|.zip','', f)):
-            continue
+        if os.path.isdir(root_dir + '/' + f):
+            #continue
+            if is_new == 'n':
+                # 再登録時はこちら　ディレクトリ追加
+                file_list.append(root_dir + '/' + f)
         else:
-            file_list.append(root_dir + '/' + f)
+            if is_new == 'y':
+                file_list.append(root_dir + '/' + f)
+            else:
+                if re.search('\.ISO', f):
+                    file_list.append(root_dir + '/' + f)
+
         #if re.search('.ZIP', f):
         #    print(f)
-    #sys.exit()
+
     #p = Path(root_dir)
     #file_list = list(p.glob("**/*.ZIP"))
     str_f_list = sorted(file_list, reverse=True)
+
     for f_name in str_f_list:
-        print(f_name)
         d_path = re.sub(r'\.ZIP|\.ISO|\.tar\.gz|.zip', '', f_name) + '/'
-        print(d_path)
+
         if re.search('\.ZIP|\.tar\.gz|\.zip', f_name):
             try:
                 arch_file = tarfile.open(f_name)
@@ -206,8 +217,12 @@ if __name__ in '__main__':
             os.makedirs(d_path, exist_ok=True)
             subprocess.call(('sudo mount ' + f_name + ' ' + d_path), shell=True)
 
-        tar_path = Path(d_path + 'DOCUMENT/' + in_filetype)
-        path_list = list(tar_path.glob("**/*.xml"))
+        print(d_path)
+
+        path_list = []
+        for ft in in_filetype.split(','):
+            tar_path = Path(d_path + 'DOCUMENT/' + ft)
+            path_list += list(tar_path.glob("**/*.xml"))
 
         for pl in path_list:
 

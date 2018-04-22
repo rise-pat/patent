@@ -1,22 +1,23 @@
 #coding:utf-8
 import re
+import Archive as archive
 
 fr = open('publn_error_log.txt','r')
-fw = open('output.txt', 'w', encoding='utf-8')
+fw = open('not_registered.txt', 'w', encoding='utf-8')
 
-path = r"(XML_PATH:\/mnt\/Drobo\/JPO\/2\.公報情報\/公開公報情報\/JPG_2006-/JPG_\d+)(\/.+)"
+path = r"(\/mnt\/Drobo\/JPO\/2\.公報情報\/公開公報情報\/JPG_.+\/JPG_\d+\/DOCUMENT\/)([ATS])(\/.+\/)(\d+\.xml)"
+#path = r"XML_PATH:.+"
 pattern = re.compile(path)
 
-fw_list = []
+nr_list = []
 for l in fr:
-    m = re.match(pattern,l)
+    m = re.search(pattern,l)
     if m:
-        matched = m.group(1)
-        if matched not in fw_list:
-            fw_list.append(m.group(1))
+        file_path = m.group(0)
+        fw.writelines(file_path+'\n')
 
-for line in fw_list:
-    fw.writelines(line+'\n')
+#for line in nr_list:
+    #fw.writelines(line+'\n')
 
 fr.close()
 fw.close

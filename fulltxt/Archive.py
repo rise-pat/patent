@@ -38,7 +38,11 @@ def xml_elements(xml_path):
     ret['appln_nr'] = tree.find('.//application-reference/document-id/doc-number').text
     ret['filing_date'] = tree.find('.//application-reference/document-id/date').text
     if tree.find('.//publication-reference/document-id/doc-number') is not None:
-        ret['publn_nr'] = tree.find('.//publication-reference/document-id/doc-number').text + kind
+        if kind == 'S':
+            tmp = tree.find('.//publication-reference/document-id/doc-number').text
+            ret['publn_nr'] = tmp.replace('WO','') + kind
+        elif kind in ['A','T']:
+            ret['publn_nr'] = tree.find('.//publication-reference/document-id/doc-number').text + kind
         ret['pub_date'] = tree.find('.//publication-reference/document-id/date').text
 
     registar_root = tree.find('.//dates-of-public-availability')
@@ -104,6 +108,9 @@ def xml_elements(xml_path):
 
     abst_element = tree.find('.//abstract')
     ret['abstract'] = re.sub(r'\n+', '', ''.join(abst_element.itertext()))
+
+    if tree.find('.//bibliographic-data/{http://www.jpo.go.jp}corrected-publication-date') is not None:
+        ret['corrected-publication-date'] = tree.find('bibliographic-data/{http://www.jpo.go.jp}corrected-publication-date').text
 
     if tree.find('.//{http://www.jpo.go.jp}:overflow') is not None:
         ret['overflow'] = tree.find('.//{http://www.jpo.go.jp}:overflow')
@@ -172,6 +179,9 @@ if __name__ in '__main__':
     # pos用ルートディレクトリ
     pos_dirs = '/mnt/Drobo/POS_files/'
 
+    print('処理対象の公報フォルダを入力')
+    target_folder = input('>> ')
+
     print('公報種類を入力してください(A,A5,S,S5,T,T5):複数可')
     in_filetype = input('>> ')
 
@@ -179,7 +189,7 @@ if __name__ in '__main__':
     is_new = input('>> ')
 
     # 全文ファイル格納Dir -> 都度書き換える
-    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/JPG_2014001-2016070"
+    root_dir = "/mnt/Drobo/JPO/2.公報情報/公開公報情報/" + target_folder
     files = os.listdir(root_dir)
     file_list = []
     for f in files:
@@ -187,20 +197,14 @@ if __name__ in '__main__':
             #continue
             if is_new == 'n':
                 # 再登録時はこちら　ディレクトリ追加
-                if re.match(r'JPG_2014\d{3}',f):
-                    file_list.append(root_dir + '/' + f)
+                file_list.append(root_dir + '/' + f)
         else:
             if is_new == 'y':
                 file_list.append(root_dir + '/' + f)
             else:
                 if re.search('\.ISO', f):
-                    if re.match(r'JPG_2014\d{3}\.ISO',f):
-                        file_list.append(root_dir + '/' + f)
+                    file_list.append(root_dir + '/' + f)
 
-        #if re.search('.ZIP', f):
-        #    print(f)
-    #p = Path(root_dir)
-    #file_list = list(p.glob("**/*.ZIP"))
     str_f_list = sorted(file_list, reverse=True)
 
     for f_name in str_f_list:
@@ -230,6 +234,9 @@ if __name__ in '__main__':
             try:
                 xml_path = str(pl)
                 ret = xml_elements(xml_path)
+                # 再公表は発行日を再公表日に書き換え
+                if 'corrected-publication-dat' in ret:
+                    ret['pub_date'] = ret['corrected-publication-date']
                 pub_nr = ret['publn_nr']
                 print(pub_nr)
                 print(xml_path)
@@ -289,72 +296,3 @@ if __name__ in '__main__':
         #unmount ISOファイル
         if re.search('.ISO', f_name):
             subprocess.call(('sudo umount ' + d_path), shell=True)
-
-    """
-    p = Path(path)
-    path_list = list(p.glob("**/*.xml"))
-    for pl in path_list:
-        xml_path = str(pl)
-        ret = xml_elements(xml_path)
-        pub_nr = ret['publn_nr']
-        print(pub_nr)
-        print(xml_path)
-        dirs = ret['kind-of-jp'] + '/' + pub_nr[0:4] + '/' + pub_nr[4:7] + '000'
-
-        #DB登録
-        sql_element = generate_insert_sql(ret)
-        register_xml_elements(sql_element)
-
-        # copy xml file
-        os.makedirs(xml_dirs + dirs, exist_ok=True)
-        target_xml = xml_dirs + dirs + '/' + pub_nr + '.xml'
-        if not os.path.isfile(target_xml):
-            shutil.copy(xml_path, target_xml)
-
-        # copy pdf file
-        os.makedirs(pdf_dirs + dirs, exist_ok=True)
-        target_pdf = pdf_dirs + dirs + '/' + pub_nr + '.pdf'
-        if not os.path.isfile(target_pdf):
-            shutil.copy(xml_path.replace('xml', 'pdf'), target_pdf)
-
-        # copy xml file
-        os.makedirs(tif_dirs + dirs, exist_ok=True)
-        target_tif = tif_dirs + dirs + '/' + pub_nr + '.tif'
-        if not os.path.isfile(target_tif):
-            shutil.copy(xml_path.replace('xml', 'tif'), target_tif)
-
-        # copy xml file
-        os.makedirs(pos_dirs + dirs, exist_ok=True)
-        target_pos = pos_dirs + dirs + '/' + pub_nr + '.pos'
-        if not os.path.isfile(target_pos):
-            shutil.copy(xml_path.replace('xml', 'pos'), target_pos)
-
-"""
-    #print(ret)
-
-#filename = "/home/tomoro/python_test/JPG_2018008.tar.gz"
-
-#temp_folder = "./" + item.replace(".ZIP", "")
-#path = filename.replace('.tar.gz','') + '/'
-
-#arc_file = tarfile.open(filename)
-#arc_file.extractall(path)
-#arc_file.close()
-
-#p = Path(path)
-
-#xml_path_list = list(p.glob("**/*.xml"))
-#xml_string = ""
-#for xml_file in xml_path_list:
-#    print(xml_file)
-#    with xml_file.open(encoding='eucjp') as f:
-#        for l in f.readlines():
-#            xml_string += l
-#    break
-
-
-#ret['claims'] = remove_tags(ET.tostring(claim_element.text))
-
-#print(ret)
-#tf = tarfile.open(filename, 'r')
-#filelist = tf.list()

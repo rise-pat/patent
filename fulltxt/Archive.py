@@ -187,17 +187,18 @@ if __name__ in '__main__':
             #continue
             if is_new == 'n':
                 # 再登録時はこちら　ディレクトリ追加
-                file_list.append(root_dir + '/' + f)
+                if re.match(r'JPG_2014\d{3}',f):
+                    file_list.append(root_dir + '/' + f)
         else:
             if is_new == 'y':
                 file_list.append(root_dir + '/' + f)
             else:
                 if re.search('\.ISO', f):
-                    file_list.append(root_dir + '/' + f)
+                    if re.match(r'JPG_2014\d{3}\.ISO',f):
+                        file_list.append(root_dir + '/' + f)
 
         #if re.search('.ZIP', f):
         #    print(f)
-
     #p = Path(root_dir)
     #file_list = list(p.glob("**/*.ZIP"))
     str_f_list = sorted(file_list, reverse=True)

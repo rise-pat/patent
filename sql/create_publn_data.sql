@@ -1,4 +1,4 @@
-/*CREATE TABLE app_names (
+CREATE TABLE app_names (
   name VARCHAR(255) PRIMARY KEY
 ) ENGINE=Mroonga DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='default_tokenizer "TokenDelimit"';
 
@@ -17,7 +17,7 @@ CREATE TABLE ipc_tags (
 CREATE TABLE fi_tags (
   name VARCHAR(255) PRIMARY KEY
 ) ENGINE=Mroonga DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='default_tokenizer "TokenDelimit"';
-*/
+
 CREATE TABLE publn_data (
   id INT PRIMARY KEY AUTO_INCREMENT,
   appln_nr VARCHAR(15) UNIQUE,

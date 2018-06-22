@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}SearchForms{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  <label for="query">キーワード検索</label>
+  <textarea name="query" id="query">{{ query }}</textarea>
+  <label for="query">集計項目</label>
+  <div>
+    <input type="radio" name="drilldown" value="none" checked>なし</input>
+    <input type="radio" name="drilldown" value="fi">FI</input>
+    <input type="radio" name="drilldown" value="pub_year">出願年</input>
+    <input type="radio" name="drilldown" value="applicants">出願人</input>
+  </div>
+  <input type="submit" value="Search">
+</form>
+
+{% if count or count == 0 %}
+<p>Search Results: ヒット件数{{ count }}</p>
+{% endif %}
+
+
+{% if results %}
+<table>
+  {% if drilldown == "none" %}
+
+    <tr>
+      <th>公報番号</th>
+      <th>出願人</th>
+      <th>タイトル</th>
+    </tr>
+  {% for result in results %}
+    <tr>
+      <td>
+        {% if result['publn_nr'][-1] == 'S' %}
+          <a href="https://patents.google.com/patent/WO{{ result['publn_nr'][:10]}}">
+        {% else %}
+          <a href="https://patents.google.com/patent/JP{{ result['publn_nr'][:10]}}">
+        {% endif %}
+          {{ result['publn_nr'] }}
+        </a>
+      </td>
+      <td>{{ result['applicants']}}</td>
+      <td>{{ result['title']}}</td>
+    </tr>
+  {% endfor %}
+  {% else %}
+    {% for result in results %}
+    <tr>
+      <td>
+        <form name="f{{ loop.index }}" method=POST>
+          <input type=hidden name=query value="{{ query }}">
+          {% if drilldown == "fi" %}
+            <input type=hidden name="drilldown" value="none">
+            <input type=hidden name="drilldown_query_type" value="fi">
+            <input type=hidden name="drilldown_query" value="{{ result['_key'] }}">
+          {% endif %}
+          {% if drilldown == "applicants" %}
+            <input type=hidden name="drilldown" value="none">
+            <input type=hidden name="drilldown_query_type" value="applicants">
+            <input type=hidden name="drilldown_query" value="{{ result['_key'] }}">
+          {% endif %}
+        </form>
+        <a href="javascript:document.f{{ loop.index }}.submit()">{{ result['_key'] }}</a>
+      </td>
+      <td>{{ result['_nsubrecs']}}件</td>
+    </tr>
+    {% endfor %}
+  {% endif %}
+</table>
+{% endif %}
+{% endblock %}

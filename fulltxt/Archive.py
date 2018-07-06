@@ -34,9 +34,14 @@ def xml_elements(xml_path):
 
     ret = {}
     kind = tree.get('kind-of-jp')
-    ret['kind-of-jp'] = kind
-    ret['appln_nr'] = tree.find('.//application-reference/document-id/doc-number').text
+    ret['type'] = kind
+    if kind in ['A','T']:
+        ret['appln_nr'] = 'P' + tree.find('.//application-reference/document-id/doc-number').text
+    elif kind == 'S':
+        ret['appln_nr'] = 'P' + tree.find('.//bibliographic-data/{http://www.jpo.go.jp}application-number-of-republication').text
     ret['filing_date'] = tree.find('.//application-reference/document-id/date').text
+    ret['filing_year'] = ret['filing_date'][:4]
+    ret['filing_month'] = ret['filing_date'][4:6]
     if tree.find('.//publication-reference/document-id/doc-number') is not None:
         if kind == 'S':
             tmp = tree.find('.//publication-reference/document-id/doc-number').text
@@ -44,12 +49,16 @@ def xml_elements(xml_path):
         elif kind in ['A','T']:
             ret['publn_nr'] = tree.find('.//publication-reference/document-id/doc-number').text + kind
         ret['pub_date'] = tree.find('.//publication-reference/document-id/date').text
+        ret['pub_year'] = ret['pub_date'][:4]
+        ret['pub_month'] = ret['pub_date'][4:6]
 
     registar_root = tree.find('.//dates-of-public-availability')
     if registar_root is not None:
         #print ET.tostring(registar_root, encoding="utf-8")
         ret['reg_nr'] = registar_root.find('printed-with-grant/document-id/doc-number').text
         ret['reg_date'] = registar_root.find('printed-with-grant/document-id/date').text
+        ret['reg_year'] = ret['reg_date'][:4]
+        ret['reg_month'] = ret['reg_date'][4:6]
         #print ET.tostring(registar_root, encoding="utf-8")
 
     ret['title'] = tree.find('.//invention-title').text
@@ -110,7 +119,7 @@ def xml_elements(xml_path):
     ret['abstract'] = re.sub(r'\n+', '', ''.join(abst_element.itertext()))
 
     if tree.find('.//bibliographic-data/{http://www.jpo.go.jp}corrected-publication-date') is not None:
-        ret['corrected-publication-date'] = tree.find('bibliographic-data/{http://www.jpo.go.jp}corrected-publication-date').text
+        ret['pub_date'] = tree.find('bibliographic-data/{http://www.jpo.go.jp}corrected-publication-date').text
 
     if tree.find('.//{http://www.jpo.go.jp}:overflow') is not None:
         ret['overflow'] = tree.find('.//{http://www.jpo.go.jp}:overflow')
@@ -121,7 +130,6 @@ def generate_insert_sql(dictionary):
     """ dictionary に含まれた要素によってインサート文とパラメータリストを生成
     """
 
-    dictionary.pop('kind-of-jp')
     columns = list(dictionary.keys())
     params = list(dictionary.values())
 
@@ -139,7 +147,7 @@ def register_xml_elements(sql_element):
              host='localhost',
              user='tomoro',
              password='tomo',
-             db='test',
+             db='patent2',
              charset='utf8',
              cursorclass=pymysql.cursors.DictCursor
         )
@@ -155,7 +163,7 @@ def error_log(xml_path, message):
              host='localhost',
              user='tomoro',
              password='tomo',
-             db='test',
+             db='patent',
              charset='utf8',
              cursorclass=pymysql.cursors.DictCursor
         )
@@ -234,13 +242,10 @@ if __name__ in '__main__':
             try:
                 xml_path = str(pl)
                 ret = xml_elements(xml_path)
-                # 再公表は発行日を再公表日に書き換え
-                if 'corrected-publication-dat' in ret:
-                    ret['pub_date'] = ret['corrected-publication-date']
                 pub_nr = ret['publn_nr']
                 print(pub_nr)
                 print(xml_path)
-                dirs = ret['kind-of-jp'] + '/' + pub_nr[0:4] + '/' + pub_nr[4:7] + '000'
+                dirs = ret['type'] + '/' + pub_nr[0:4] + '/' + pub_nr[4:7] + '000'
 
                 #DB登録
                 sql_element = generate_insert_sql(ret)

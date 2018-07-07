@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang=ja>
+  <head>
+    <meta charset=utf-8>
+    <meta http-equiv=X-UA-Compatible content=IE=edge>
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>RISE Patent Search System</title>
+    <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js></script>
+    <!-- Honoka Bootstrap -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <script src={{ url_for('static', filename='js/bootstrap.min.js') }}></script>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src=https://cdn.jsdelivr.net/npm/vue></script>
+    <script src=https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js></script>
+  </head>
+  <body>
+    <div class=container id= "app"  style=background-color:#FFFFFF;>
+      <h2>Patent Search</h2>
+      <div class=row>
+        <div class=col-lg-12 >
+          <div class="form-group">
+            <label for="query">キーワード検索</label>
+            <textarea class="form-control" v-model="vue_query" rows="3" name="query" id="query">{{ query }}</textarea>
+            <button v-on:click="doquery">Search</button>
+          </div>
+          <div>
+            <input type="radio" v-model="drilldown" value="none" checked>なし</input>
+            <input type="radio" v-model="drilldown" value="fi">FI</input>
+            <input type="radio" v-model="drilldown" value="pub_year">出願年</input>
+            <input type="radio" v-model="drilldown" value="applicants">出願人</input>
+          </div>
+        </div>
+      </div>
+      <div v-if="count>=0">
+        <h4>検索結果: ヒット件数 (( count )) 件</h4>
+      </div>
+      <div class=col-lg-12>
+        <biblio-data v-for="(item, index) in results" v-bind:key="item.id" v-bind:index="index" v-bind:title="item.title" v-bind:applicants="item.applicants" v-bind:publn_nr="item.publn_nr" v-bind:appln_nr="item.appln_nr" v-bind:reg_nr="item.reg_nr" v-bind:inventors="item.inventors" v-bind:fi="item.fi" v-bind:pub_date="item.pub_date" v-bind:filing_date="item.filing_date" v-bind:reg_date="item.reg_date" v-bind:abstract="item.abstract" v-bind:claims="item.claims">
+        </biblio-data>
+        </span>
+      </div>
+
+  </body>
+</html>
+
+<script type="text/javascript">
+
+Vue.component('claim' , {
+    delimiters: ['((','))'],
+    template: `
+      <div>
+        <div v-if="ind_flg==1">
+          <p>
+            <strong>(( clm_nr )).</strong>
+            <span v-html="clm_txt">
+          </p>
+        </div>
+        <div v-else>
+          <div v-if="show" key="s">
+            <p>
+            <strong>(( clm_nr )).</strong>
+            <span v-html="clm_txt">
+            </p>
+          </div>
+          <div v-else key="b">
+            <strong>(( clm_nr )).</strong>
+            <a v-on:click="show = !show">+</a>
+          </div>
+        </div>
+      </div>
+    `,
+    data: function() {
+      return {
+        show: false
+      }
+    },
+    props: {
+      'index': Number,
+      'clm_nr': Number,
+      'clm_txt': String,
+      'ind_flg': Number
+    },
+    methods: {
+      hide: function () {
+        this.show = !this.show;
+        console.log(this.show)
+      },
+    },
+})
+
+Vue.component('biblio-data', {
+  delimiters: ['((','))'],
+  template: `
+  <div class="panel panel-default">
+    <div class=panel-heading>
+      (( title ))
+    </div>
+    <div class="panel-body">
+      <div class=row>
+        <div class=col-lg-12></div>
+      </div>
+      <div class=row>
+        <div class=col-lg-3>【公報番号】&nbsp;&nbsp;(( publn_nr ))</div>
+        <div class=col-lg-3>【出願番号】&nbsp;&nbsp;(( appln_nr ))</div>
+        <div class=col-lg-3>【登録番号】&nbsp;&nbsp;(( reg_nr ))</div>
+        <div class=col-lg-3></div>
+      </div>
+      <div class=row>
+        <div class=col-lg-3>【公開日】&nbsp;&nbsp;(( pub_date ))&nbsp;&nbsp;</div>
+        <div class=col-lg-3>【出願日】&nbsp;&nbsp;(( filing_date ))&nbsp;&nbsp;</div>
+        <div class=col-lg-3>【登録日】&nbsp;&nbsp;(( reg_date ))&nbsp;&nbsp;</div>
+        <div class=col-lg-3></div>
+      </div>
+      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【出願人】
+        <span v-for="app in applicants" v-bind:app="app">(( app ))&nbsp;&nbsp;</span>
+      </div></div>
+      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【発明者】
+        <span v-for="inventor in inventors" v-bind:inventor="inventor">(( inventor ))&nbsp;&nbsp;</span>
+      </div></div>
+      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【FI】
+        <span v-for="fic in fi" v-bind:fic="fic">(( fic ))&nbsp;&nbsp;</span>
+      </div></div>
+      <div class="row">
+          <div class="col-lg-8">
+            <br>
+            <ul class="nav nav-tabs">
+              <li class="active"><a data-toggle="tab" v-bind:href="'#home'+index">要約</a></li>
+              <li><a data-toggle="tab" v-bind:href="'#menu1-'+index">請求項</a></li>
+              <li><a data-toggle="tab" v-bind:href="'#menu2-'+index">全図面</a></li>
+            </ul>
+
+            <div class="tab-content">
+              <div v-bind:id="'home'+index" class="tab-pane fade in active">
+                <br><p v-html="abstract"></p>
+              </div>
+              <div v-bind:id="'menu1-'+index" class="tab-pane fade pre-scrollable">
+                <br>
+                <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg">
+                </claim>
+              </div>
+              <div v-bind:id="'menu2-'+index" class="tab-pane fade">
+                <p>Some content.</p>
+              </div>
+            </div>
+          </div>
+        <div class=col-lg-4><br>
+          <img src="image/JP2018022118A.gif">
+        </div>
+      </div>
+    </div>
+  </div>
+  `,
+  // 受け取る属性名を指定
+    props: {
+      'index' : Number,
+      'id': [String, Number],
+      'type' : String,
+      'appln_nr': String,
+      'publn_nr': String,
+      'reg_nr' : String,
+      'filing_date' : String,
+      'pub_date' : String,
+      'reg_date' : String,
+      'title': String,
+      'applicants': [],
+      'attorneys': [],
+      'inventors': [],
+      'fi': [],
+      'clsf' : [],
+      'abstract' : String,
+      'claims' : String
+    }
+})
+
+var vm = new Vue({
+  delimiters: ['((','))'],
+  el: '#app',
+  data: {
+    count: -1,
+    vue_query: '',
+    drilldown: 'none',
+    results: []
+  },
+  methods: {
+    doquery: function () {
+      axios
+        .post('{{ url_for('search.getjson') }}', {
+          vue_query: this.vue_query,
+          drilldown: this.drilldown
+        })
+        .then(function (response) {
+            this.count = response.data.count
+            this.results = response.data.results
+        }.bind(this))
+        .catch(error => console.log(error))
+    }
+  }
+})
+
+</script>

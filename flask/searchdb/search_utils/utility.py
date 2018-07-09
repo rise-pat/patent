@@ -3,6 +3,7 @@ import time
 import json
 import re
 import os
+import os.path
 import xml.etree.ElementTree as ET
 
 def convertUTCDate(sec):
@@ -37,7 +38,23 @@ def convertResultJSON(json_string):
         if 'abstract' in abs_claims:
             tmp_dic['abstract'] = abs_claims['abstract']
 
+        png_ary = getPNGpath(tmp_dic['publn_nr'])
+        fig_dic = abs_claims['figure']
+        ret_png_ary = []
+        for png_path in png_ary:
+            m = re.search(r'-(\d+)\.png', png_path)
+            if m:
+                id = int(m.group(1))
+                if id in fig_dic:
+                    num = fig_dic[id]['num']
+                    ret_png_ary.append([id, num, png_path])
+
+        ret_png_ary = sorted(ret_png_ary, key=lambda x: x[0])
+
+        tmp_dic['figure'] = ret_png_ary
+
         results.append(tmp_dic)
+
     ret["results"] = results
 
     return ret
@@ -69,7 +86,6 @@ def xml_elements(xml_path):
             xml_string += l
 
     tree = ET.fromstring(xml_string) # DOM root
-    t = tree.find('.//description').itertext()
 
     claim_element = tree.find('.//claims')
     ret['claims'] = []
@@ -97,5 +113,35 @@ def xml_elements(xml_path):
     abst_text = abst_text.replace('</abstract>', '')
     abst_text = abst_text.replace('\n', '')
     ret['abstract'] = abst_text
+
+    figure_dic = {}
+    figure = tree.find('.//drawings')
+    for f in figure.iterfind('figure'):
+        num = f.get('num')
+        img = f.find('img')
+        id = int(img.get('id'))
+        figure_dic[id] = {'num': num}
+
+    if figure_dic != {}:
+        figure_dic[1] = {'num': 'p'}
+
+    ret['figure'] = figure_dic
+
+    return ret
+
+def getPNGpath(doc_number):
+    type = doc_number[-1]
+    ret = []
+    if type in ['A','T','S']:
+        tmp_nr = doc_number[:-1]
+        base = os.path.dirname(os.path.abspath(__file__))
+        dir = '../static/PNG_files/' + type + '/' + tmp_nr[0:4] + '/' + tmp_nr[4:7] + '000'
+        dir += '/' + doc_number
+        file_path = os.path.normpath(os.path.join(base, dir))
+        if os.path.isdir(file_path):
+            for f in os.listdir(file_path):
+                ret.append(dir.replace('..', '') + '/' + f)
+        else:
+            return []
 
     return ret

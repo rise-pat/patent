@@ -50,7 +50,7 @@ def getjson():
 
         results = cursor.fetchall()
         cursor.close()
-        #print(results)
+
         value  = list(results[0].values())
         json_str = str(value[0], encoding='utf-8', errors='replace')
         result_json =  (json.loads(json_str))[0]

@@ -50,7 +50,6 @@ def convertResultJSON(json_string):
                     ret_png_ary.append([id, num, png_path])
 
         ret_png_ary = sorted(ret_png_ary, key=lambda x: x[0])
-
         tmp_dic['figure'] = ret_png_ary
 
         results.append(tmp_dic)
@@ -116,11 +115,12 @@ def xml_elements(xml_path):
 
     figure_dic = {}
     figure = tree.find('.//drawings')
-    for f in figure.iterfind('figure'):
-        num = f.get('num')
-        img = f.find('img')
-        id = int(img.get('id'))
-        figure_dic[id] = {'num': num}
+    if figure:
+        for f in figure.iterfind('figure'):
+            num = f.get('num')
+            img = f.find('img')
+            id = int(img.get('id'))
+            figure_dic[id] = {'num': num}
 
     if figure_dic != {}:
         figure_dic[1] = {'num': 'p'}

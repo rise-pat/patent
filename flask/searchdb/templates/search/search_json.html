@@ -8,14 +8,16 @@
     <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js></script>
     <!-- Honoka Bootstrap -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/guruguru.css') }}">
     <script src={{ url_for('static', filename='js/bootstrap.min.js') }}></script>
 
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src=https://cdn.jsdelivr.net/npm/vue></script>
     <script src=https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js></script>
+
   </head>
   <body>
-    <div class=container id= "app"  style=background-color:#FFFFFF;>
+    <div class=container-fluid id= "app"  style=background-color:#FFFFFF;>
       <h2>Patent Search</h2>
       <div class=row>
         <div class=col-lg-12 >
@@ -32,6 +34,16 @@
           </div>
         </div>
       </div>
+      <div v-if="loading" id="floatingCirclesG">
+      	<div class="f_circleG" id="frotateG_01"></div>
+      	<div class="f_circleG" id="frotateG_02"></div>
+      	<div class="f_circleG" id="frotateG_03"></div>
+      	<div class="f_circleG" id="frotateG_04"></div>
+      	<div class="f_circleG" id="frotateG_05"></div>
+      	<div class="f_circleG" id="frotateG_06"></div>
+      	<div class="f_circleG" id="frotateG_07"></div>
+      	<div class="f_circleG" id="frotateG_08"></div>
+      </div>
       <div v-if="count>=0">
         <h4>検索結果: ヒット件数 (( count )) 件</h4>
       </div>
@@ -40,7 +52,6 @@
         </biblio-data>
         </span>
       </div>
-
   </body>
 </html>
 
@@ -134,19 +145,48 @@ Vue.component('biblio-data', {
               <div v-bind:id="'home'+index" class="tab-pane fade in active">
                 <br><p v-html="abstract"></p>
               </div>
-              <div v-bind:id="'menu1-'+index" class="tab-pane fade pre-scrollable">
+              <div v-bind:id="'menu1-'+index" class="tab-pane fade">
                 <br>
                 <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg">
                 </claim>
               </div>
               <div v-bind:id="'menu2-'+index" class="tab-pane fade">
-
+                <br>
+                <div class="row" v-for="(figure_row,index1) in figureList" v-bind:index1="index1" v-bind:id="index1" v:bind:figure_row="figure_row">
+                  <div class="col-lg-3" v-for="(figure_element, index2) in figure_row" v-bind:id="index1 + '-' + index2" v:bind:figure_element="figure_element">
+                    <img v-bind:src="figure_element[2]" class="img-responsive center-block" data-toggle="modal" v-bind:data-target="'#image-modal-'+index+'-'+index1+'-'+index2" style="cursor:pointer">
+                    <div class="modal fade" v-bind:id="'image-modal-'+index+'-'+index1+'-'+index2">
+                      <div class="modal-dialog　modal-lg modal-middle">
+                        <div class="modal-content"
+                          <div class="modal-body">
+                            <img v-bind:src="figure_element[2]" class="img-responsive center-block">
+                          </div>
+                          <div class="modal-img_footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         <div class=col-lg-4><br>
           <span v-if="countFigure > 0">
-            <img v-bind:src="figure[0][2]" class="img-responsive center-block">
+            <img v-bind:src="figure[0][2]" class="img-responsive center-block" data-toggle="modal" v-bind:data-target="'#image-modal-'+index" style="cursor:pointer">
+            <div class="modal fade" v-bind:id="'image-modal-'+index">
+              <div class="modal-dialog　modal-lg modal-middle">
+                <div class="modal-content"
+                  <div class="modal-body">
+                    <img v-bind:src="figure[0][2]" class="img-responsive center-block">
+                  </div>
+                  <div class="modal-img_footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </span>
         </div>
       </div>
@@ -177,6 +217,31 @@ Vue.component('biblio-data', {
     computed: {
       countFigure: function() {
         return this.figure.length
+      },
+      figureList: function() {
+        var N = 4;
+
+        if (this.figure.length == 0) {
+          return []
+        }
+
+        tmp_ary = this.figure.slice(1);
+        mod = tmp_ary.length % N;
+        if (mod > 0) {
+          for (var i = 0; i < N - mod; ++i) {
+            tmp_ary.push([]);
+          }
+        }
+
+        var retAry = new Array();
+        idx = 0;
+        while (idx + N <= tmp_ary.length){
+          retAry.push(tmp_ary.slice(idx,idx+N));
+          idx = idx + N;
+        }
+
+        return retAry
+
       }
     }
 })
@@ -185,6 +250,7 @@ var vm = new Vue({
   delimiters: ['((','))'],
   el: '#app',
   data: {
+    loading: false,
     count: -1,
     vue_query: '',
     drilldown: 'none',
@@ -192,6 +258,9 @@ var vm = new Vue({
   },
   methods: {
     doquery: function () {
+      this.loading = true;
+      this.results = [];
+      this.count = -1
       axios
         .post('{{ url_for('search.getjson') }}', {
           vue_query: this.vue_query,
@@ -200,8 +269,12 @@ var vm = new Vue({
         .then(function (response) {
             this.count = response.data.count
             this.results = response.data.results
+            this.loading = false;
         }.bind(this))
-        .catch(error => console.log(error))
+        .catch(error => {
+            this.loading = false;
+            console.log(error)
+        })
     }
   }
 })

@@ -70,13 +70,14 @@ Vue.component('claim' , {
         <div v-else>
           <div v-if="show" key="s">
             <p>
+            <a href="#" v-on:click="show = !show">-</a>
             <strong>(( clm_nr )).</strong>
             <span v-html="clm_txt">
             </p>
           </div>
           <div v-else key="b">
+            <a href="#" v-on:click="show = !show">+</a>
             <strong>(( clm_nr )).</strong>
-            <a v-on:click="show = !show">+</a>
           </div>
         </div>
       </div>
@@ -108,61 +109,46 @@ Vue.component('biblio-data', {
       (( title ))
     </div>
     <div class="panel-body">
-      <div class=row>
-        <div class=col-lg-12></div>
-      </div>
-      <div class=row>
-        <div class=col-lg-3>【公報番号】&nbsp;&nbsp;(( publn_nr ))</div>
-        <div class=col-lg-3>【出願番号】&nbsp;&nbsp;(( appln_nr ))</div>
-        <div class=col-lg-3>【登録番号】&nbsp;&nbsp;(( reg_nr ))</div>
-        <div class=col-lg-3></div>
-      </div>
-      <div class=row>
-        <div class=col-lg-3>【公開日】&nbsp;&nbsp;(( pub_date ))&nbsp;&nbsp;</div>
-        <div class=col-lg-3>【出願日】&nbsp;&nbsp;(( filing_date ))&nbsp;&nbsp;</div>
-        <div class=col-lg-3>【登録日】&nbsp;&nbsp;(( reg_date ))&nbsp;&nbsp;</div>
-        <div class=col-lg-3></div>
-      </div>
-      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【出願人】
-        <span v-for="app in applicants" v-bind:app="app">(( app ))&nbsp;&nbsp;</span>
-      </div></div>
-      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【発明者】
-        <span v-for="inventor in inventors" v-bind:inventor="inventor">(( inventor ))&nbsp;&nbsp;</span>
-      </div></div>
-      <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【FI】
-        <span v-for="fic in fi" v-bind:fic="fic">(( fic ))&nbsp;&nbsp;</span>
-      </div></div>
       <div class="row">
-          <div class="col-lg-8">
-            <br>
-            <ul class="nav nav-tabs">
-              <li class="active"><a data-toggle="tab" v-bind:href="'#home'+index">要約</a></li>
-              <li><a data-toggle="tab" v-bind:href="'#menu1-'+index">請求項</a></li>
-              <li><a data-toggle="tab" v-bind:href="'#menu2-'+index">全図面</a></li>
-            </ul>
+        <div class=col-lg-8>
+          <div class="row">
+            <div class="col-lg-12">
+              <ul class="nav nav-tabs">
+                <li class="active"><a data-toggle="tab" v-bind:href="'#home'+index">要約</a></li>
+                <li><a data-toggle="tab" v-bind:href="'#menu1-'+index">請求項</a></li>
+                <li><a data-toggle="tab" v-bind:href="'#menu2-'+index">全図面</a></li>
+              </ul>
 
-            <div class="tab-content">
-              <div v-bind:id="'home'+index" class="tab-pane fade in active">
-                <br><p v-html="abstract"></p>
-              </div>
-              <div v-bind:id="'menu1-'+index" class="tab-pane fade">
-                <br>
-                <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg">
-                </claim>
-              </div>
-              <div v-bind:id="'menu2-'+index" class="tab-pane fade">
-                <br>
-                <div class="row" v-for="(figure_row,index1) in figureList" v-bind:index1="index1" v-bind:id="index1" v:bind:figure_row="figure_row">
-                  <div class="col-lg-3" v-for="(figure_element, index2) in figure_row" v-bind:id="index1 + '-' + index2" v:bind:figure_element="figure_element">
-                    <img v-bind:src="figure_element[2]" class="img-responsive center-block" data-toggle="modal" v-bind:data-target="'#image-modal-'+index+'-'+index1+'-'+index2" style="cursor:pointer">
-                    <div class="modal fade" v-bind:id="'image-modal-'+index+'-'+index1+'-'+index2">
-                      <div class="modal-dialog　modal-lg modal-middle">
-                        <div class="modal-content"
-                          <div class="modal-body">
-                            <img v-bind:src="figure_element[2]" class="img-responsive center-block">
-                          </div>
-                          <div class="modal-img_footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <div class="tab-content">
+                <div v-bind:id="'home'+index" class="tab-pane fade in active">
+                  <br><p v-html="abstract"></p>
+                  <div class="row">
+                    <div class="col-lg-6">
+                      <span v-if="countFigure > 0">
+                        <img v-bind:src="figure[0][2]" class="img-responsive center-block">
+                      </span>
+                    </div><div class="col-lg-6"></div>
+                  </div>
+                </div>
+                <div v-bind:id="'menu1-'+index" class="tab-pane fade">
+                  <br>
+                  <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg">
+                  </claim>
+                </div>
+                <div v-bind:id="'menu2-'+index" class="tab-pane fade">
+                  <br>
+                  <div class="row" v-for="(figure_row,index1) in figureList" v-bind:index1="index1" v-bind:id="index1" v:bind:figure_row="figure_row">
+                    <div class="col-lg-4" v-for="(figure_element, index2) in figure_row" v-bind:id="index1 + '-' + index2" v:bind:figure_element="figure_element">
+                      <img v-bind:src="figure_element[2]" class="img-responsive center-block" data-toggle="modal" v-bind:data-target="'#image-modal-'+index+'-'+index1+'-'+index2" style="cursor:pointer">
+                      <div class="modal fade" v-bind:id="'image-modal-'+index+'-'+index1+'-'+index2">
+                        <div class="modal-dialog　modal-lg modal-middle">
+                          <div class="modal-content"
+                            <div class="modal-body">
+                              <img v-bind:src="figure_element[2]" class="img-responsive center-block">
+                            </div>
+                            <div class="modal-img_footer">
+                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -171,23 +157,31 @@ Vue.component('biblio-data', {
                 </div>
               </div>
             </div>
-          </div>
-        <div class=col-lg-4><br>
-          <span v-if="countFigure > 0">
-            <img v-bind:src="figure[0][2]" class="img-responsive center-block" data-toggle="modal" v-bind:data-target="'#image-modal-'+index" style="cursor:pointer">
-            <div class="modal fade" v-bind:id="'image-modal-'+index">
-              <div class="modal-dialog　modal-lg modal-middle">
-                <div class="modal-content"
-                  <div class="modal-body">
-                    <img v-bind:src="figure[0][2]" class="img-responsive center-block">
-                  </div>
-                  <div class="modal-img_footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                  </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <div class=row>
+                <div class="col-lg-12">
+                【公報番号】&nbsp;&nbsp;(( publn_nr )) <br>
+                【出願番号】&nbsp;&nbsp;(( appln_nr )) <br>
+                【登録番号】&nbsp;&nbsp;(( reg_nr )) <br><br>
+                【公開日】&nbsp;&nbsp;(( pub_date )) <br>
+                【登録日】&nbsp;&nbsp;(( reg_date )) <br>
+                【出願日】&nbsp;&nbsp;(( filing_date )) <br><br>
                 </div>
               </div>
+              <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【出願人】
+                <span v-for="app in applicants" v-bind:app="app">(( app ))&nbsp;&nbsp;</span><br>
+              </div></div>
+              <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【発明者】
+                <span v-for="inventor in inventors" v-bind:inventor="inventor">(( inventor ))&nbsp;&nbsp;</span><br>
+              </div></div>
+              <div class="row"><div class="col-lg-12" style="word-wrap: break-word;">【FI】
+                <span v-for="fic in fi" v-bind:fic="fic">(( fic ))&nbsp;&nbsp;</span><br><br>
+              </div></div>
             </div>
-          </span>
+          </div>
         </div>
       </div>
     </div>
@@ -219,7 +213,7 @@ Vue.component('biblio-data', {
         return this.figure.length
       },
       figureList: function() {
-        var N = 4;
+        var N = 3;
 
         if (this.figure.length == 0) {
           return []

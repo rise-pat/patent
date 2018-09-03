@@ -20,17 +20,19 @@
     <div class=container-fluid id= "app"  style=background-color:#FFFFFF;>
       <h2>Patent Search</h2>
       <div class=row>
-        <div class=col-lg-12 >
+        <div class=col-lg-7 >
           <div class="form-group">
             <label for="query">キーワード検索</label>
-            <textarea class="form-control" v-model="vue_query" rows="3" name="query" id="query">{{ query }}</textarea>
+            <textarea class="form-control" v-model="vue_query" name="query" id="query">{{ query }}</textarea>
             <button v-on:click="doquery">Search</button>
           </div>
-          <div>
-            <input type="radio" v-model="drilldown" value="none" checked>なし</input>
-            <input type="radio" v-model="drilldown" value="fi">FI</input>
-            <input type="radio" v-model="drilldown" value="pub_year">出願年</input>
-            <input type="radio" v-model="drilldown" value="applicants">出願人</input>
+        </div>
+        <div class=col-lg-5>
+          <div class="form-group">
+            <label for="query">ハイライトキーワード</label>
+            <textarea class="form-control" v-model="highlight_key" name="highlight_key"></textarea>
+            <button v-on:click="highlight">HighLight</button>
+            (( highlight_key))
           </div>
         </div>
       </div>
@@ -45,7 +47,7 @@
       	<div class="f_circleG" id="frotateG_08"></div>
       </div>
       <div v-if="count>=0">
-        <h4>検索結果: ヒット件数 (( count )) 件</h4>
+        <h5>検索結果: ヒット件数 (( count )) 件</h5>
       </div>
       <div class=col-lg-12>
         <biblio-data v-for="(item, index) in results" v-bind:key="item.id" v-bind:index="index" v-bind:title="item.title" v-bind:applicants="item.applicants" v-bind:publn_nr="item.publn_nr" v-bind:appln_nr="item.appln_nr" v-bind:reg_nr="item.reg_nr" v-bind:inventors="item.inventors" v-bind:fi="item.fi" v-bind:pub_date="item.pub_date" v-bind:filing_date="item.filing_date" v-bind:reg_date="item.reg_date" v-bind:abstract="item.abstract" v-bind:claims="item.claims" v-bind:figure="item.figure">
@@ -63,40 +65,30 @@ Vue.component('claim' , {
       <div>
         <div v-if="ind_flg==1">
           <p>
-            <strong>(( clm_nr )).</strong>
+            <span class="badge" style="background-color:#1e90ff;">【請求項(( clm_nr ))】</span>
             <span v-html="clm_txt">
           </p>
         </div>
         <div v-else>
-          <div v-if="show" key="s">
+          <div v-if="claim_show">
             <p>
-            <a href="#" v-on:click="show = !show">-</a>
-            <strong>(( clm_nr )).</strong>
+              <span class="badge">【請求項(( clm_nr ))】</span>
             <span v-html="clm_txt">
             </p>
-          </div>
-          <div v-else key="b">
-            <a href="#" v-on:click="show = !show">+</a>
-            <strong>(( clm_nr )).</strong>
           </div>
         </div>
       </div>
     `,
-    data: function() {
-      return {
-        show: false
-      }
-    },
     props: {
       'index': Number,
       'clm_nr': Number,
       'clm_txt': String,
-      'ind_flg': Number
+      'ind_flg': Number,
+      'claim_show' : Boolean
     },
     methods: {
       hide: function () {
         this.show = !this.show;
-        console.log(this.show)
       },
     },
 })
@@ -106,11 +98,11 @@ Vue.component('biblio-data', {
   template: `
   <div class="panel panel-default">
     <div class=panel-heading>
-      (( title ))
+      <span v-html="title"></span>
     </div>
     <div class="panel-body">
       <div class="row">
-        <div class=col-lg-8>
+        <div class=col-lg-9>
           <div class="row">
             <div class="col-lg-12">
               <ul class="nav nav-tabs">
@@ -132,7 +124,14 @@ Vue.component('biblio-data', {
                 </div>
                 <div v-bind:id="'menu1-'+index" class="tab-pane fade">
                   <br>
-                  <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg">
+                  従属項
+                  <span v-if="claim_show == false">
+                    <a v-on:click="claim_show = !claim_show">表示</a> | 非表示 <br><br>
+                  </span>
+                  <span v-if="claim_show">
+                    表示  | <a v-on:click="claim_show = !claim_show">非表示</a> <br><br>
+                  </span>
+                  <claim v-for="(claim,index) in claims" v-bind:index="index" v-bind:clm_nr="claim.clm_nr" v-bind:clm_txt="claim.clm_txt" v-bind:ind_flg="claim.ind_flg" v-bind:claim_show="claim_show">
                   </claim>
                 </div>
                 <div v-bind:id="'menu2-'+index" class="tab-pane fade">
@@ -158,7 +157,7 @@ Vue.component('biblio-data', {
               </div>
             </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-3">
           <div class="panel panel-default">
             <div class="panel-body">
               <div class=row>
@@ -206,7 +205,12 @@ Vue.component('biblio-data', {
       'clsf' : [],
       'abstract' : String,
       'claims' : String,
-      'figure' : String
+      'figure' : String,
+    },
+    data : function() {
+        return{
+          claim_show: false
+        }
     },
     computed: {
       countFigure: function() {
@@ -248,9 +252,29 @@ var vm = new Vue({
     count: -1,
     vue_query: '',
     drilldown: 'none',
-    results: []
+    results: [],
+    highlight_key: ''
   },
   methods: {
+    highlight: function() {
+      var key_lines = this.highlight_key.split('\\n')
+      for (var l of key_lines) {
+        var keywords = l.split(' ')
+        var pattern = keywords.join('|')
+
+        var reg = new RegExp("(" + pattern + ")", "gi")
+        for (result of this.results) {
+          result['title'] = result['title'].replace(reg, '<span style="background-color: #FFFF00">$1</span>')
+          result['abstract'] = result['abstract'].replace(reg, '<span style="background-color: #FFFF00">$1</span>')
+          for (claim_idx in result['claims']) {
+            claim = result['claims'][claim_idx]['clm_txt']
+            result['claims'][claim_idx]['clm_txt'] = claim.replace(reg, '<span style="background-color: #FFFF00">$1</span>')
+          }
+        }
+      }
+
+      //}
+    },
     doquery: function () {
       this.loading = true;
       this.results = [];
@@ -258,7 +282,6 @@ var vm = new Vue({
       axios
         .post('{{ url_for('search.getjson') }}', {
           vue_query: this.vue_query,
-          drilldown: this.drilldown
         })
         .then(function (response) {
             this.count = response.data.count

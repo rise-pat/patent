@@ -17,7 +17,8 @@ def getjson():
 
     json_data = request.get_json()
     query = json_data['vue_query']
-    drilldown = json_data['drilldown']
+    #drilldown = json_data['drilldown']
+    drilldown = "none"
     error = None
 
     if not query :
